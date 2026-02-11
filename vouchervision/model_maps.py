@@ -68,6 +68,14 @@ class ModelMaps:
         'LOCAL_CPU_MISTRAL_7B_INSTRUCT_V02_GGUF': '#bababa',  # Gray
 
         'phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05': '#bababa',  # Gray
+        
+        'Ollama_llama3_2': '#FFA500',  # Orange
+        'Ollama_llama3_2_vision': '#FFA500',  # Orange
+        'Ollama_llama3_1': '#FFA500',  # Orange
+        'Ollama_mistral': '#FFA500',  # Orange
+        'Ollama_mixtral': '#FFA500',  # Orange
+        'Ollama_qwen2_5': '#FFA500',  # Orange
+        'Ollama_Custom': '#FFA500',  # Orange
     }
 
 
@@ -149,6 +157,14 @@ class ModelMaps:
                     'LOCAL Mistral 7B Instruct v0.2',
                     'LOCAL CPU Mistral 7B Instruct v0.2 GGUF',
                     'phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05']
+    
+    MODELS_OLLAMA = ['Ollama llama3.2',
+                    'Ollama llama3.2-vision',
+                    'Ollama llama3.1',
+                    'Ollama mistral',
+                    'Ollama mixtral',
+                    'Ollama qwen2.5',
+                    'Ollama Custom']
 
     MODELS_GUI_DEFAULT = 'Gemini 2.0 Flash' #'Gemini 1.5 Flash' #'Azure GPT 4' # 'GPT 4 Turbo 1106-preview'
 
@@ -158,7 +174,8 @@ class ModelMaps:
                     'Google': MODELS_GOOGLE, 
                     'Hyperbolic': MODELS_HYPERBOLIC, 
                     'Mistral': MODELS_MISTRAL, 
-                    'Local': MODELS_LOCAL}
+                    'Local': MODELS_LOCAL,
+                    'Ollama': MODELS_OLLAMA}
 
     version_mapping_cost = {
         'GPT 4 32k': 'GPT_4_32K',
@@ -229,6 +246,14 @@ class ModelMaps:
         'LOCAL CPU Mistral 7B Instruct v0.2 GGUF': 'LOCAL_CPU_MISTRAL_7B_INSTRUCT_V02_GGUF',
 
         'phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05': 'phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05',
+        
+        'Ollama llama3.2': 'Ollama_llama3_2',
+        'Ollama llama3.2-vision': 'Ollama_llama3_2_vision',
+        'Ollama llama3.1': 'Ollama_llama3_1',
+        'Ollama mistral': 'Ollama_mistral',
+        'Ollama mixtral': 'Ollama_mixtral',
+        'Ollama qwen2.5': 'Ollama_qwen2_5',
+        'Ollama Custom': 'Ollama_Custom',
     }
 
     @classmethod
@@ -301,7 +326,15 @@ class ModelMaps:
 
             'LOCAL CPU Mistral 7B Instruct v0.2 GGUF':  True,
 
-            'phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05': True
+            'phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05': True,
+            
+            'Ollama llama3.2': True,
+            'Ollama llama3.2-vision': True,
+            'Ollama llama3.1': True,
+            'Ollama mistral': True,
+            'Ollama mixtral': True,
+            'Ollama qwen2.5': True,
+            'Ollama Custom': True,
         }
         return version_has_key.get(key)
 
@@ -373,7 +406,15 @@ class ModelMaps:
 
             'LOCAL CPU Mistral 7B Instruct v0.2 GGUF':  False,
 
-            'phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05': False
+            'phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05': False,
+            
+            'Ollama llama3.2': False,
+            'Ollama llama3.2-vision': False,
+            'Ollama llama3.1': False,
+            'Ollama mistral': False,
+            'Ollama mixtral': False,
+            'Ollama qwen2.5': False,
+            'Ollama Custom': False,
         }
         return version_mapping_is_azure.get(key)
 
@@ -546,6 +587,21 @@ class ModelMaps:
         elif key == 'phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05':
             return 'phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05'
         
+        ### Ollama
+        elif key == 'Ollama_llama3_2':
+            return 'llama3.2'
+        elif key == 'Ollama_llama3_2_vision':
+            return 'llama3.2-vision'
+        elif key == 'Ollama_llama3_1':
+            return 'llama3.1'
+        elif key == 'Ollama_mistral':
+            return 'mistral'
+        elif key == 'Ollama_mixtral':
+            return 'mixtral'
+        elif key == 'Ollama_qwen2_5':
+            return 'qwen2.5'
+        elif key == 'Ollama_Custom':
+            return 'custom'  # Will be overridden by user config
 
 
         else:
@@ -553,7 +609,7 @@ class ModelMaps:
 
     @classmethod
     def get_models_gui_list(cls):
-        return cls.MODELS_LOCAL + cls.MODELS_GOOGLE + cls.MODELS_OPENAI + cls.MODELS_OPENAI_AZURE + cls.MODELS_MISTRAL + cls.MODELS_HYPERBOLIC
+        return cls.MODELS_LOCAL + cls.MODELS_GOOGLE + cls.MODELS_OPENAI + cls.MODELS_OPENAI_AZURE + cls.MODELS_MISTRAL + cls.MODELS_HYPERBOLIC + cls.MODELS_OLLAMA
     
     @classmethod 
     def get_models_gui_list_family(cls, family=None):

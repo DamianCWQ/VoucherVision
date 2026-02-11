@@ -27,10 +27,12 @@ from zipfile import ZipFile
 import cv2
 import numpy as np
 import pandas as pd
-import pkg_resources as pkg
 import torch
 import torchvision
 import yaml
+from packaging.version import Version
+from packaging.requirements import Requirement
+import importlib.metadata
 
 # from utils.downloads import gsutil_getsize
 # from utils.metrics import box_iou, fitness
@@ -360,7 +362,7 @@ def check_python(minimum='3.7.0'):
 
 def check_version(current='0.0.0', minimum='0.0.0', name='version ', pinned=False, hard=False, verbose=False):
     # Check version vs. required version
-    current, minimum = (pkg.parse_version(x) for x in (current, minimum))
+    current, minimum = (Version(x) for x in (current, minimum))
     result = (current == minimum) if pinned else (current >= minimum)  # bool
     s = f'{name}{minimum} required by YOLOv5, but {name}{current} is currently installed'  # string
     if hard:
@@ -379,14 +381,18 @@ def check_requirements(requirements=ROOT / 'requirements.txt', exclude=(), insta
         file = Path(requirements)
         assert file.exists(), f"{prefix} {file.resolve()} not found, check failed."
         with file.open() as f:
-            requirements = [f'{x.name}{x.specifier}' for x in pkg.parse_requirements(f) if x.name not in exclude]
+            requirements = [f'{Requirement(line.strip()).name}{Requirement(line.strip()).specifier}' 
+                          for line in f if line.strip() and not line.startswith('#') 
+                          and Requirement(line.strip()).name not in exclude]
     else:  # list or tuple of packages
         requirements = [x for x in requirements if x not in exclude]
 
     n = 0  # number of packages updates
     for i, r in enumerate(requirements):
         try:
-            pkg.require(r)
+            req = Requirement(r)
+            importlib.metadata.version(req.name)  # Check if package is installed
+            # Note: version comparison not implemented here, just checking if installed
         except Exception:  # DistributionNotFound or VersionConflict if requirements not met
             s = f"{prefix} {r} not found and is required by YOLOv5"
             if install and AUTOINSTALL:  # check environment variable

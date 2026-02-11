@@ -10,13 +10,58 @@ from transformers import AutoProcessor, AutoModelForCausalLM, AutoTokenizer, Bit
 
 try:
     from vouchervision.utils_LLM import SystemLoadMonitor
+    from vouchervision.model_cache import ModelCache
 except:
     from utils_LLM import SystemLoadMonitor
+    from model_cache import ModelCache
 
 
 warnings.filterwarnings("ignore", category=UserWarning, message="TypedStorage is deprecated")
 
 class FlorenceOCR:
+    # Class-level cache instance
+    _model_cache = ModelCache()
+    
+    @staticmethod
+    def _load_florence_model(model_id):
+        """Static method to load Florence model - called only once per model_id"""
+        print(f"Loading Florence model from HuggingFace: {model_id}")
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id, 
+            trust_remote_code=True, 
+            attn_implementation="eager"
+        ).eval().cuda()
+        return model
+    
+    @staticmethod
+    def _load_florence_processor(model_id):
+        """Static method to load Florence processor - called only once per model_id"""
+        print(f"Loading Florence processor from HuggingFace: {model_id}")
+        processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+        return processor
+    
+    @staticmethod
+    def _load_mistral_model(model_id_clean):
+        """Static method to load Mistral cleaning model - called only once"""
+        print(f"Loading Mistral cleaning model from HuggingFace: {model_id_clean}")
+        quant_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            quant_method="bnb",
+        )
+        model_clean = AutoModelForCausalLM.from_pretrained(
+            model_id_clean,
+            quantization_config=quant_config,
+            low_cpu_mem_usage=True,
+        )
+        return model_clean
+    
+    @staticmethod
+    def _load_mistral_tokenizer(model_id_clean):
+        """Static method to load Mistral tokenizer - called only once"""
+        print(f"Loading Mistral tokenizer from HuggingFace: {model_id_clean}")
+        tokenizer = AutoTokenizer.from_pretrained(model_id_clean)
+        return tokenizer
+    
     # def __init__(self, logger, model_id='microsoft/Florence-2-base'):
     def __init__(self, logger, model_id='microsoft/Florence-2-large'):
         self.MAX_TOKENS = 1024
@@ -25,21 +70,32 @@ class FlorenceOCR:
 
         self.monitor = SystemLoadMonitor(logger)
 
-        self.model = AutoModelForCausalLM.from_pretrained(model_id, trust_remote_code=True).eval().cuda()
-        self.processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
+        # Use cached models instead of loading fresh each time
+        self.model = self._model_cache.get_model(
+            f"florence_model_{model_id}",
+            self._load_florence_model,
+            model_id
+        )
+        self.processor = self._model_cache.get_model(
+            f"florence_processor_{model_id}",
+            self._load_florence_processor,
+            model_id
+        )
 
         # self.model_id_clean = "mistralai/Mistral-7B-v0.3"
         self.model_id_clean = "unsloth/mistral-7b-instruct-v0.3-bnb-4bit"
-        self.tokenizer_clean = AutoTokenizer.from_pretrained(self.model_id_clean)
-        # Configuring the BitsAndBytesConfig for quantization
-        quant_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            quant_method="bnb",
+        
+        self.tokenizer_clean = self._model_cache.get_model(
+            f"mistral_tokenizer_{self.model_id_clean}",
+            self._load_mistral_tokenizer,
+            self.model_id_clean
         )
-        self.model_clean = AutoModelForCausalLM.from_pretrained(
-            self.model_id_clean,
-            quantization_config=quant_config,
-            low_cpu_mem_usage=True,)
+        
+        self.model_clean = self._model_cache.get_model(
+            f"mistral_model_{self.model_id_clean}",
+            self._load_mistral_model,
+            self.model_id_clean
+        )
         
 
     def ocr_florence(self, image, task_prompt='<OCR>', text_input=None):

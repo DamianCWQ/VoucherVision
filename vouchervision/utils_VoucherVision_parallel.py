@@ -830,6 +830,9 @@ class VoucherVision():
                 return GoogleGeminiHandler(cfg, logger, model_name, JSON_dict_structure, config_vals_for_permutation)
             elif 'MISTRAL' in name_parts and ('LOCAL' not in name_parts):
                 return MistralHandler(cfg, logger, model_name, JSON_dict_structure, config_vals_for_permutation)
+            elif 'Ollama' in name_parts:
+                from vouchervision.LLM_Ollama import OllamaHandler
+                return OllamaHandler(cfg, logger, model_name, JSON_dict_structure, config_vals_for_permutation)
             else:
                 return OpenAIHandler(cfg, logger, model_name, JSON_dict_structure, is_azure, llm_object, config_vals_for_permutation)
 

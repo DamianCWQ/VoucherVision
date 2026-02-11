@@ -231,3 +231,28 @@ LOCAL_CPU_MISTRAL_7B_INSTRUCT_V02_GGUF:
 phyloforfun/mistral-7b-instruct-v2-bnb-4bit__HLT_MICH_Angiospermae_SLTPvC_v1-0_medium_OCR-C25-L25-E50-R05:
   in: 0.0
   out: 0.0
+################
+# Ollama Models (Local - Free)
+################
+# UPDATED: 2026-02-10
+Ollama_llama3_2:
+  in: 0.0
+  out: 0.0
+Ollama_llama3_2_vision:
+  in: 0.0
+  out: 0.0
+Ollama_llama3_1:
+  in: 0.0
+  out: 0.0
+Ollama_mistral:
+  in: 0.0
+  out: 0.0
+Ollama_mixtral:
+  in: 0.0
+  out: 0.0
+Ollama_qwen2_5:
+  in: 0.0
+  out: 0.0
+Ollama_Custom:
+  in: 0.0
+  out: 0.0

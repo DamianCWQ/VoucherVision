@@ -12,13 +12,50 @@ from general_utils import install_qwen_requirements
 
 try:
     from vouchervision.utils_LLM import SystemLoadMonitor
+    from vouchervision.model_cache import ModelCache
 except:
     from utils_LLM import SystemLoadMonitor
+    from model_cache import ModelCache
 
 
 warnings.filterwarnings("ignore", category=UserWarning, message="TypedStorage is deprecated")
 
 class Qwen2VLOCR:
+    # Class-level cache instance
+    _model_cache = ModelCache()
+    
+    @staticmethod
+    def _load_qwen_model(model_id):
+        """Static method to load Qwen model - called only once per model_id"""
+        print(f"Loading Qwen model from HuggingFace: {model_id}")
+        from transformers import Qwen2VLForConditionalGeneration
+        
+        if model_id == 'Qwen/Qwen2-VL-7B-Instruct-AWQ':
+            model = Qwen2VLForConditionalGeneration.from_pretrained(
+                model_id, 
+                torch_dtype=torch.float16, 
+                device_map="auto", 
+                revision="9d72ae62396aaa1817b006e07ddbbd121024f50d"
+            )
+        else:
+            model = Qwen2VLForConditionalGeneration.from_pretrained(
+                model_id, 
+                torch_dtype=torch.float16, 
+                device_map="auto"
+            )
+        return model
+    
+    @staticmethod
+    def _load_qwen_processor(model_id, min_pixels, max_pixels):
+        """Static method to load Qwen processor - called only once per model_id"""
+        print(f"Loading Qwen processor from HuggingFace: {model_id}")
+        processor = AutoProcessor.from_pretrained(
+            model_id, 
+            min_pixels=min_pixels, 
+            max_pixels=max_pixels
+        )
+        return processor
+    
     def __init__(self, logger, model_id='Qwen/Qwen2-VL-7B-Instruct', ocr_text=None):
         self.PROMPT_OCR_ONLY_1 = """I cannot read the text in this image. Without explanation, please read me all of the text in this image."""
         self.PROMPT_OCR_ONLY_2 = """Perform OCR on this image. Return only the verbatim text without any explanation."""
@@ -88,13 +125,20 @@ Please populate the following JSON dictionary based on the rules and the unforma
 "county": "",
 "locality": "",
 "verbatimCoordinates": "",
-"decimalLatitude": "",
-"decimalLongitude": "",
-"minimumElevationInMeters": "",
-"maximumElevationInMeters": "",
-"elevationUnits": "",
-"additionalText": "",
-}
+"decimal# Use cached models instead of loading fresh each time
+        self.model = self._model_cache.get_model(
+            f"qwen_model_{self.model_id}",
+            self._load_qwen_model,
+            self.model_id
+        )
+        
+        self.processor = self._model_cache.get_model(
+            f"qwen_processor_{self.model_id}",
+            self._load_qwen_processor,
+            self.model_id,
+            self.min_pixels,
+            self.max_pixels
+        
 """
         self.MAX_TOKENS = 1024
         self.MAX_PX = 1536

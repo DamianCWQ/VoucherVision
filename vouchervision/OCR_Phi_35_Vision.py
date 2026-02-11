@@ -5,6 +5,11 @@ import numpy as np
 import warnings
 from transformers import AutoTokenizer, AutoProcessor, AutoModelForCausalLM
 
+try:
+    from vouchervision.model_cache import ModelCache
+except:
+    from model_cache import ModelCache
+
 # Avoid deprecation warnings for TypedStorage
 warnings.filterwarnings("ignore", category=UserWarning, message="TypedStorage is deprecated")
 
@@ -92,6 +97,33 @@ Please populate the following JSON dictionary based on the rules and the unforma
 
 # Phi-3.5 model class
 class Phi35VisionOCR:
+    # Class-level cache instance
+    _model_cache = ModelCache()
+    
+    @staticmethod
+    def _load_phi_model(model_id, attn_implementation):
+        """Static method to load Phi model - called only once per model_id"""
+        print(f"Loading Phi-3.5-Vision model from HuggingFace: {model_id}")
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id, 
+            torch_dtype=torch.float16, 
+            device_map="cuda", 
+            trust_remote_code=True, 
+            _attn_implementation=attn_implementation
+        )
+        return model
+    
+    @staticmethod
+    def _load_phi_processor(model_id):
+        """Static method to load Phi processor - called only once per model_id"""
+        print(f"Loading Phi-3.5-Vision processor from HuggingFace: {model_id}")
+        processor = AutoProcessor.from_pretrained(
+            model_id, 
+            trust_remote_code=True, 
+            num_crops=4
+        )
+        return processor
+    
     def __init__(self, logger=None, model_id='microsoft/Phi-3.5-vision-instruct', attn_implementation='eager'):
         self.MAX_TOKENS = 1024
         self.MAX_PX = 1536  # Max size for images
@@ -100,15 +132,18 @@ class Phi35VisionOCR:
         self.logger = logger
         self.model_id = model_id
 
-        # Load the model and processor
-        # If on Linux AND using Ada generation GPU (NVIDIA A100, NVIDIA A6000 Ada, NVIDIA H100), can use 'flash_attention_2' to improve efficiency
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_id, torch_dtype=torch.float16, device_map="cuda", 
-            trust_remote_code=True, _attn_implementation=attn_implementation
+        # Use cached models instead of loading fresh each time
+        self.model = self._model_cache.get_model(
+            f"phi_model_{model_id}_{attn_implementation}",
+            self._load_phi_model,
+            model_id,
+            attn_implementation
         )
-        # Resize image based on constraints
-        self.processor = AutoProcessor.from_pretrained(
-            self.model_id, trust_remote_code=True, num_crops=4
+        
+        self.processor = self._model_cache.get_model(
+            f"phi_processor_{model_id}",
+            self._load_phi_processor,
+            model_id
         )
 
     def encode_image_base64(self, image):

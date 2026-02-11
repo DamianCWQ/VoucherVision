@@ -15,7 +15,8 @@ leafmachine:
   #            GPT 4o 2024-08-06
   #            GPT 4o mini 2024-07-18
   #            LOCAL Mistral 7B Instruct v0.2
-  LLM_version: Gemini 1.5 Pro
+  #            Ollama Custom
+  LLM_version: Ollama Custom
 
   # options = {
   #           0: "Use original images for transcriptions",
@@ -25,9 +26,9 @@ leafmachine:
   use_RGB_label_images: 1
 
   project:
-    dir_images_local: c:\Users\willwe\Documents\VoucherVision\demo\demo_images
+    dir_images_local: C:\Users\User\Documents\Damian\Swinburne\small dataset
 
-    dir_output: S:/VoucherVision/Unassigned_AA
+    dir_output: C:\Users\User\Documents\Damian\Swinburne\small dataset\VV_output
     run_name: test
 
     prompt_version: SLTPvM_default.yaml
@@ -35,17 +36,20 @@ leafmachine:
 
 
     double_OCR: false
-    # ['hand', 'Qwen-2-VL', 'Florence-2', 'GPT-4o-mini', 'normal','Gemini-1.5-Pro']
+    # ['hand', 'Qwen-2-VL', 'Florence-2', 'GPT-4o-mini', 'Ollama', 'normal','Gemini-1.5-Pro']
     # 'hand' = Google Vision API handwritten optimized 
     # 'normal' = Default Google Vision API
     # 'Qwen-2-VL' = Qwen-2-VL model for OCR
     # 'Florence-2' = Florence-2 model for OCR
     # 'GPT-4o-mini' = GPT-4o-mini model for OCR
+    # 'Ollama' = Ollama vision model for OCR (requires OLLAMA_OCR_MODEL env var)
     OCR_option:
-    - Gemini-1.5-Pro
     # - Florence-2
+    # - Gemini-1.5-Pro
     # - GPT-4o-mini
     # - Qwen-2-VL
+    - Ollama
+
 
     # If GPT-4o-mini is in OCR_option, then choose from:
     #         high
@@ -61,7 +65,14 @@ leafmachine:
     # do_use_florence: false
     #         microsoft/Florence-2-large   
     #         microsoft/Florence-2-base
-    florence_model_path: microsoft/Florence-2-large
+    florence_model_path: microsoft/Florence-2-base
+
+    # If Ollama is in OCR_option, specify the vision model:
+    #         qwen2-vl:4b
+    #         llama3.2-vision
+    #         bakllava
+    #         or any other Ollama vision model
+    ollama_ocr_model: qwen3-vl:4b
 
     # Technically supported, but the installation instructions will not include all required packages for CRAFT, please contact us if you need to use this
     do_use_trOCR: false
@@ -74,14 +85,14 @@ leafmachine:
     tool_wikipedia: false
     
     # For the LM2 label collages. Should not be a problem for most use cases
-    batch_size: 50000
+    batch_size: 100
 
     catalog_numerical_only: false
     continue_run_from_partial_xlsx: ''
     delete_all_temps: false
     delete_temps_keep_VVE: false
     image_location: local
-    num_workers: 8
+    num_workers: 1
     pdf_conversion_dpi: 100
     prefix_removal: ''
     suffix_removal: ''

@@ -88,6 +88,7 @@ def process_single_image_worker(job_args):
 
     # --- 3. Call LLM (if OCR succeeded) ---
     response_candidate = None
+    response_candidate_sanitized = None
     nt_in, nt_out = 0, 0
     WFO_record, GEO_record, usage_report = None, None, None
     llm_failed = False
@@ -107,6 +108,8 @@ def process_single_image_worker(job_args):
                 response_candidate, nt_in, nt_out, WFO_record, GEO_record, usage_report = llm_model.call_llm_api_MistralAI(prompt, None, paths)
             elif 'Hyperbolic' in name_parts:
                 response_candidate, nt_in, nt_out, WFO_record, GEO_record, usage_report = llm_model.call_llm_api_Hyperbolic(prompt, None, paths)
+            elif 'Ollama' in name_parts:
+                response_candidate, nt_in, nt_out, WFO_record, GEO_record, usage_report = llm_model.call_llm_api_Ollama(prompt, None, paths)
             else: # Fallback to OpenAI
                 response_candidate, nt_in, nt_out, WFO_record, GEO_record, usage_report = llm_model.call_llm_api_OpenAI(prompt, None, paths)
 
@@ -257,7 +260,7 @@ class VoucherVision():
         lgr.setLevel(logging.ERROR)
         
         self.trOCR_processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten") # usually just the "microsoft/trocr-base-handwritten"
-        self.trOCR_model = VisionEncoderDecoderModel.from_pretrained(self.trOCR_model_version) # This matches the model
+        self.trOCR_model = VisionEncoderDecoderModel.from_pretrained(self.trOCR_model_version, use_safetensors=True) # This matches the model
         
         # Check for GPU availability
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -1961,6 +1964,9 @@ class VoucherVision():
             elif 'Hyperbolic' in name_parts:
                 from vouchervision.LLM_Hyperbolic_Outlines import HyperbolicHandler
                 return HyperbolicHandler(cfg, logger, model_name, JSON_dict_structure, config_vals_for_permutation)
+            elif 'Ollama' in name_parts:
+                from vouchervision.LLM_Ollama import OllamaHandler
+                return OllamaHandler(cfg, logger, model_name, JSON_dict_structure, config_vals_for_permutation)
             else:
                 from vouchervision.LLM_OpenAI import OpenAIHandler
                 return OpenAIHandler(cfg, logger, model_name, JSON_dict_structure, is_azure, llm_object, config_vals_for_permutation)

@@ -96,6 +96,7 @@ class OCREngine:
         self.init_gemini_pro()
         self.init_hyperbolic()
         self.init_Qwen2VL()
+        self.init_ollama()
         self.init_craft()
 
         self.multimodal_prompt = """I need you to transcribe all of the text in this image. 
@@ -136,7 +137,7 @@ class OCREngine:
                 self.craft_net = load_craftnet_model(weight_path=os.path.join(self.dir_home,'vouchervision','craft','craft_mlt_25k.pth'), cuda=False)
 
     def init_florence(self):
-        if 'LOCAL Florence-2' in self.OCR_option:
+        if 'Florence-2' in self.OCR_option:
             from OCR_Florence_2 import FlorenceOCR
             self.Florence = FlorenceOCR(logger=self.logger, model_id=self.cfg['leafmachine']['project']['florence_model_path'])
 
@@ -196,9 +197,20 @@ class OCREngine:
             self.Hyperbolic_Qwen2_VL_7B = HyperbolicOCR(api_key = os.getenv('HYPERBOLIC_API_KEY'), model_id="Qwen/Qwen2-VL-7B-Instruct")
 
     def init_Qwen2VL(self):
-        if 'LOCAL Qwen-2-VL' in self.OCR_option:
+        if 'Qwen-2-VL' in self.OCR_option:
             from OCR_Qwen import Qwen2VLOCR
             self.Qwen2VL = Qwen2VLOCR(logger=self.logger, model_id=self.cfg['leafmachine']['project']['qwen_model_path'])
+    
+    def init_ollama(self):
+        if 'Ollama' in self.OCR_option:
+            from vouchervision.OCR_Ollama import OllamaVisionOCR
+            
+            # Get Ollama model name from config or environment
+            ollama_model = self.cfg['leafmachine']['project'].get('ollama_ocr_model', os.getenv('OLLAMA_OCR_MODEL', 'llama3.2-vision'))
+            ollama_base_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+            
+            self.logger.info(f"Initializing Ollama OCR with model: {ollama_model}")
+            self.OllamaOCR = OllamaVisionOCR(logger=self.logger, model_name=ollama_model, base_url=ollama_base_url)
             
 
     def init_llava(self):
@@ -917,6 +929,22 @@ class OCREngine:
                 self.OCR = self.OCR + f"\nGPT-4o-mini OCR:\n{results_text}" + f"\nGPT-4o-mini OCR:\n{results_text}"
             else:
                 self.OCR = self.OCR + f"\nGPT-4o-mini OCR:\n{results_text}"
+        
+        if 'Ollama' in self.OCR_option: # This option does not produce an OCR helper image
+            self.ocr_method.add("Ollama")
+            if self.json_report:
+                self.json_report.set_text(text_main=f'Working on Ollama [{self.OllamaOCR.model_name}] OCR :construction:')
+
+            self.logger.info(f"Ollama OCR Usage Report for Model [{self.OllamaOCR.model_name}]")
+            results_text, full_response, usage_report = self.OllamaOCR.ocr_with_ollama(self.path)
+            results_text_sanitized = sanitize_for_storage(results_text)
+
+            self.OCR_JSON_to_file['OCR_Ollama'] = results_text_sanitized
+
+            if self.double_OCR:
+                self.OCR = self.OCR + f"\nOllama OCR:\n{results_text}" + f"\nOllama OCR:\n{results_text}"
+            else:
+                self.OCR = self.OCR + f"\nOllama OCR:\n{results_text}"
         
         if 'GPT-4o' in self.OCR_option: # This option does not produce an OCR helper image
             self.ocr_method.add("GPT-4o")

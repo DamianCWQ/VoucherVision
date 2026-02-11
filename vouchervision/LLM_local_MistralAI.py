@@ -3,7 +3,7 @@ import torch
 import transformers
 import gc
 from transformers import BitsAndBytesConfig
-from langchain_classic.output_parsers.retry import RetryOutputParser
+from langchain_classic.output_parsers import RetryWithErrorOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from huggingface_hub import hf_hub_download
@@ -111,7 +111,7 @@ class LocalMistralHandler:
         self.local_model = HuggingFacePipeline(pipeline=self.local_model_pipeline)
 
         # Set up the retry parser with the runnable
-        self.retry_parser = RetryOutputParser(parser=self.parser, llm=self.local_model, max_retries=self.MAX_RETRIES)
+        self.retry_parser = RetryWithErrorOutputParser.from_llm(parser=self.parser, llm=self.local_model, max_retries=self.MAX_RETRIES)
         # Create an llm chain with LLM and prompt
         self.chain = self.prompt | self.local_model
 
