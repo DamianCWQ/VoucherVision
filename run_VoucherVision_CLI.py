@@ -1,5 +1,9 @@
 import os, sys, yaml, argparse
+from dotenv import load_dotenv
 from vouchervision.vouchervision_main import voucher_vision, load_custom_cfg
+
+# Load environment variables from .env file
+load_dotenv()
 
 def main():
     # Parse the command-line arguments

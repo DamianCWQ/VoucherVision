@@ -43,6 +43,13 @@ class OllamaVisionOCR:
         # Timeout for vision models (they're slower than text-only models)
         self.timeout = int(os.getenv('OLLAMA_OCR_TIMEOUT', '600'))  # 10 minutes default (Qwen3-VL is slow)
         
+        # Max tokens to generate - prevents runaway generation
+        self.max_tokens = int(os.getenv('OLLAMA_OCR_MAX_TOKENS', '2048'))
+        
+        # Retry settings
+        self.max_retries = int(os.getenv('OLLAMA_OCR_MAX_RETRIES', '2'))
+        self.use_streaming = os.getenv('OLLAMA_OCR_STREAMING', 'true').lower() == 'true'
+        
         # OCR-specific prompts optimized for Qwen vision models
         self.PROMPT_OCR_ONLY = """Extract and transcribe all text visible in this image. Include all labels, printed text, handwritten text, numbers, dates, and location information. Return only the raw text without any explanation."""
 
@@ -94,9 +101,65 @@ Just list the text you see, one item per line."""
         image.save(buffered, format="JPEG", quality=95)
         return base64.b64encode(buffered.getvalue()).decode('utf-8')
     
+    def _make_ollama_request(self, payload, attempt=1):
+        """
+        Make a request to Ollama API with streaming support
+        
+        Args:
+            payload: Request payload
+            attempt: Current attempt number
+            
+        Returns:
+            tuple: (ocr_text, full_response_dict)
+        """
+        api_url = f"{self.base_url}/api/generate"
+        
+        try:
+            if self.use_streaming:
+                # Stream the response to detect hangs early and get partial results
+                response = requests.post(api_url, json=payload, timeout=self.timeout, stream=True)
+                response.raise_for_status()
+                
+                accumulated_text = ""
+                full_result = {}
+                
+                import time
+                start_time = time.time()
+                last_chunk_time = start_time
+                
+                for line in response.iter_lines():
+                    if line:
+                        try:
+                            chunk = json.loads(line)
+                            if 'response' in chunk:
+                                accumulated_text += chunk['response']
+                            
+                            # Update full result with latest data
+                            full_result.update(chunk)
+                            last_chunk_time = time.time()
+                            
+                            # Check if done
+                            if chunk.get('done', False):
+                                break
+                        except json.JSONDecodeError:
+                            continue
+                
+                return accumulated_text.strip(), full_result
+            else:
+                # Non-streaming request
+                response = requests.post(api_url, json=payload, timeout=self.timeout)
+                response.raise_for_status()
+                result = response.json()
+                return result.get('response', '').strip(), result
+                
+        except requests.exceptions.Timeout:
+            raise  # Re-raise to be handled by caller
+        except requests.exceptions.RequestException as e:
+            raise RuntimeError(f"Ollama API request failed: {e}")
+    
     def ocr_with_ollama(self, image_input, prompt=None, structured=False):
         """
-        Perform OCR using Ollama vision model
+        Perform OCR using Ollama vision model with retry logic
         
         Args:
             image_input: Path to image, PIL Image, or numpy array
@@ -129,57 +192,68 @@ Just list the text you see, one item per line."""
             if prompt is None:
                 prompt = self.PROMPT_OCR_STRUCTURED if structured else self.PROMPT_OCR_ONLY
             
-            # Prepare Ollama API request
-            api_url = f"{self.base_url}/api/generate"
-            
-            payload = {
-                "model": self.model_name,
-                "prompt": prompt,
-                "images": [image_b64],
-                "stream": False,
-                "options": {
-                    "temperature": 0.1,  # Low temperature for consistent OCR
-                    "top_p": 0.9,
-                }
-            }
-            
-            if self.logger:
-                self.logger.info(f"Sending OCR request to Ollama model: {self.model_name} (timeout: {self.timeout}s)")
-            
-            try:
-                response = requests.post(api_url, json=payload, timeout=self.timeout)
-                response.raise_for_status()
+            # Try with retries and progressively more aggressive settings
+            last_error = None
+            for attempt in range(1, self.max_retries + 1):
+                # Prepare Ollama API request
+                # Reduce num_predict on retries to prevent runaway generation
+                num_predict = self.max_tokens if attempt == 1 else max(512, self.max_tokens // (attempt * 2))
                 
-                result = response.json()
-                ocr_text = result.get('response', '').strip()
-                
-                # Create usage report
-                usage_report = {
-                    'ocr_method': f'Ollama-{self.model_name}',
-                    'model': self.model_name,
-                    'total_tokens': result.get('eval_count', 0) + result.get('prompt_eval_count', 0),
-                    'prompt_tokens': result.get('prompt_eval_count', 0),
-                    'completion_tokens': result.get('eval_count', 0),
-                    'total_time_seconds': result.get('total_duration', 0) / 1_000_000_000,  # Convert nanoseconds
-                    'cost': 0.0,  # Ollama is free/local
+                payload = {
+                    "model": self.model_name,
+                    "prompt": prompt,
+                    "images": [image_b64],
+                    "stream": self.use_streaming,
+                    "options": {
+                        "temperature": 0.1,  # Low temperature for consistent OCR
+                        "top_p": 0.9,
+                        "num_predict": num_predict,  # Limit output tokens
+                    }
                 }
                 
                 if self.logger:
-                    self.logger.info(f"OCR completed. Extracted {len(ocr_text)} characters")
-                    self.logger.info(f"Tokens: {usage_report['total_tokens']}, Time: {usage_report['total_time_seconds']:.2f}s")
+                    retry_msg = f" (attempt {attempt}/{self.max_retries})" if attempt > 1 else ""
+                    self.logger.info(f"Sending OCR request to Ollama model: {self.model_name} (timeout: {self.timeout}s, max_tokens: {num_predict}, streaming: {self.use_streaming}){retry_msg}")
                 
-                return ocr_text, result, usage_report
-                
-            except requests.exceptions.Timeout:
-                error_msg = f"Ollama OCR timed out after {self.timeout}s. Vision models can be slow - try increasing OLLAMA_OCR_TIMEOUT env var or reducing num_workers in config."
-                if self.logger:
-                    self.logger.error(error_msg)
-                raise RuntimeError(error_msg)
-            except requests.exceptions.RequestException as e:
-                error_msg = f"Ollama API request failed: {e}"
-                if self.logger:
-                    self.logger.error(error_msg)
-                raise RuntimeError(error_msg)
+                try:
+                    ocr_text, result = self._make_ollama_request(payload, attempt)
+                    
+                    # Create usage report
+                    usage_report = {
+                        'ocr_method': f'Ollama-{self.model_name}',
+                        'model': self.model_name,
+                        'total_tokens': result.get('eval_count', 0) + result.get('prompt_eval_count', 0),
+                        'prompt_tokens': result.get('prompt_eval_count', 0),
+                        'completion_tokens': result.get('eval_count', 0),
+                        'total_time_seconds': result.get('total_duration', 0) / 1_000_000_000 if result.get('total_duration') else 0,
+                        'cost': 0.0,  # Ollama is free/local
+                        'attempts': attempt,
+                    }
+                    
+                    if self.logger:
+                        self.logger.info(f"OCR completed. Extracted {len(ocr_text)} characters")
+                        self.logger.info(f"Tokens: {usage_report['total_tokens']}, Time: {usage_report['total_time_seconds']:.2f}s")
+                    
+                    return ocr_text, result, usage_report
+                    
+                except requests.exceptions.Timeout as e:
+                    last_error = e
+                    if attempt < self.max_retries:
+                        if self.logger:
+                            self.logger.warning(f"OCR attempt {attempt} timed out after {self.timeout}s, retrying with reduced token limit...")
+                        continue
+                    else:
+                        # Final attempt failed
+                        error_msg = f"Ollama OCR timed out after {self.timeout}s and {self.max_retries} attempts. Try: 1) Set OLLAMA_OCR_TIMEOUT env var higher (e.g., 1200), 2) Set OLLAMA_OCR_MAX_TOKENS lower (e.g., 1024), 3) Reduce num_workers in config to 1, or 4) Use streaming: OLLAMA_OCR_STREAMING=true"
+                        if self.logger:
+                            self.logger.error(error_msg)
+                        raise RuntimeError(error_msg)
+                        
+                except RuntimeError as e:
+                    # API errors that shouldn't be retried
+                    if self.logger:
+                        self.logger.error(str(e))
+                    raise
 
 
 def main():

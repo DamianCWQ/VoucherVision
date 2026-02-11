@@ -44,11 +44,11 @@ leafmachine:
     # 'GPT-4o-mini' = GPT-4o-mini model for OCR
     # 'Ollama' = Ollama vision model for OCR (requires OLLAMA_OCR_MODEL env var)
     OCR_option:
-    # - Florence-2
+    - Florence-2
     # - Gemini-1.5-Pro
     # - GPT-4o-mini
     # - Qwen-2-VL
-    - Ollama
+    # - Ollama
 
 
     # If GPT-4o-mini is in OCR_option, then choose from:

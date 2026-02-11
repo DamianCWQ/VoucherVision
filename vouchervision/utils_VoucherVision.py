@@ -1857,7 +1857,9 @@ class VoucherVision():
 
         # --- Execute Jobs in Parallel ---
         all_results = [None] * len(self.img_paths)
-        num_workers = min(16, len(valid_img_paths))
+        # Use configured num_workers, but don't exceed number of images
+        configured_workers = self.cfg['leafmachine']['project'].get('num_workers', 1)
+        num_workers = min(configured_workers, len(valid_img_paths))
         self.logger.info(f"Starting {num_workers} worker threads for {len(jobs)} images.")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:

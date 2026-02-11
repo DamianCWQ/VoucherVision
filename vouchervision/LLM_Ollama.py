@@ -1,10 +1,14 @@
 import time, torch, json, os
+from dotenv import load_dotenv
 from langchain_core.prompts import PromptTemplate
 from langchain_community.llms import Ollama
 from langchain_community.chat_models import ChatOllama
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_classic.output_parsers import RetryWithErrorOutputParser
+
+# Load environment variables from .env file
+load_dotenv()
 
 from vouchervision.utils_LLM import SystemLoadMonitor, run_tools, count_tokens, save_individual_prompt, sanitize_prompt
 from vouchervision.utils_LLM_JSON_validation import validate_and_align_JSON_keys_with_template
