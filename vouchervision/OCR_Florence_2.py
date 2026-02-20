@@ -122,6 +122,7 @@ class FlorenceOCR:
             early_stopping=False,
             do_sample=False,
             num_beams=3,
+            use_cache=False,
         )
         generated_text = self.processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
         parsed_answer_dict = self.processor.post_process_generation(

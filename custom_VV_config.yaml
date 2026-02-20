@@ -28,7 +28,7 @@ leafmachine:
   project:
     dir_images_local: C:\Users\User\Documents\Damian\Swinburne\small dataset
 
-    dir_output: C:\Users\User\Documents\Damian\Swinburne\small dataset\VV_output
+    dir_output: C:\Users\User\Documents\Damian\Swinburne\VV_output
     run_name: test
 
     prompt_version: SLTPvM_default.yaml
