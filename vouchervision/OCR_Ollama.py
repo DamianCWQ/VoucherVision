@@ -101,18 +101,20 @@ Just list the text you see, one item per line."""
         image.save(buffered, format="JPEG", quality=95)
         return base64.b64encode(buffered.getvalue()).decode('utf-8')
     
-    def _make_ollama_request(self, payload, attempt=1):
+    def _make_ollama_request(self, payload, attempt=1, use_chat_api=True):
         """
         Make a request to Ollama API with streaming support
         
         Args:
             payload: Request payload
             attempt: Current attempt number
+            use_chat_api: Use /api/chat endpoint (True) or /api/generate (False)
             
         Returns:
             tuple: (ocr_text, full_response_dict)
         """
-        api_url = f"{self.base_url}/api/generate"
+        # Use chat API for vision models as it handles thinking field properly
+        api_url = f"{self.base_url}/api/chat" if use_chat_api else f"{self.base_url}/api/generate"
         
         try:
             if self.use_streaming:
@@ -131,7 +133,13 @@ Just list the text you see, one item per line."""
                     if line:
                         try:
                             chunk = json.loads(line)
-                            if 'response' in chunk:
+                            # Handle both chat and generate endpoints
+                            if use_chat_api and 'message' in chunk:
+                                # Chat API: get content or thinking field
+                                msg = chunk['message']
+                                accumulated_text += msg.get('content', '') or msg.get('thinking', '')
+                            elif 'response' in chunk:
+                                # Generate API
                                 accumulated_text += chunk['response']
                             
                             # Update full result with latest data
@@ -150,7 +158,17 @@ Just list the text you see, one item per line."""
                 response = requests.post(api_url, json=payload, timeout=self.timeout)
                 response.raise_for_status()
                 result = response.json()
-                return result.get('response', '').strip(), result
+                
+                # Extract text based on API type
+                if use_chat_api and 'message' in result:
+                    # Chat API: prioritize content, fall back to thinking
+                    msg = result['message']
+                    text = msg.get('content', '').strip() or msg.get('thinking', '').strip()
+                else:
+                    # Generate API
+                    text = result.get('response', '').strip()
+                
+                return text, result
                 
         except requests.exceptions.Timeout:
             raise  # Re-raise to be handled by caller
@@ -199,10 +217,16 @@ Just list the text you see, one item per line."""
                 # Reduce num_predict on retries to prevent runaway generation
                 num_predict = self.max_tokens if attempt == 1 else max(512, self.max_tokens // (attempt * 2))
                 
+                # Use chat API format for vision models (handles thinking field)
                 payload = {
                     "model": self.model_name,
-                    "prompt": prompt,
-                    "images": [image_b64],
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": prompt,
+                            "images": [image_b64]
+                        }
+                    ],
                     "stream": self.use_streaming,
                     "options": {
                         "temperature": 0.1,  # Low temperature for consistent OCR
@@ -216,7 +240,7 @@ Just list the text you see, one item per line."""
                     self.logger.info(f"Sending OCR request to Ollama model: {self.model_name} (timeout: {self.timeout}s, max_tokens: {num_predict}, streaming: {self.use_streaming}){retry_msg}")
                 
                 try:
-                    ocr_text, result = self._make_ollama_request(payload, attempt)
+                    ocr_text, result = self._make_ollama_request(payload, attempt, use_chat_api=True)
                     
                     # Create usage report
                     usage_report = {
