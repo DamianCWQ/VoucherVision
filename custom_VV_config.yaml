@@ -89,7 +89,7 @@ leafmachine:
 
     tool_GEO: false
     tool_WFO: true
-    tool_wikipedia: true
+    tool_wikipedia: false
     
     # For the LM2 label collages. Should not be a problem for most use cases
     batch_size: 100
