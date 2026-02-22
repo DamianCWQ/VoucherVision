@@ -75,10 +75,11 @@ leafmachine:
 
     # If using "Ollama Custom" for LLM_version, specify the LLM model:
     #         llama3.1:8b-instruct-q4_K_S
-    #         qwen2.5:3b
+    #         qwen2.5:7b-instruct
+    #         qwen3:4b-instruct
     #         qwen2.5:7b
     #         or any other Ollama text model
-    ollama_llm_model: qwen2.5:7b
+    ollama_llm_model: qwen3:4b-instruct
 
     # Technically supported, but the installation instructions will not include all required packages for CRAFT, please contact us if you need to use this
     do_use_trOCR: false
