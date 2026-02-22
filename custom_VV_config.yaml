@@ -35,7 +35,7 @@ leafmachine:
 
 
 
-    double_OCR: true
+    double_OCR: false
     # ['hand', 'Qwen-2-VL', 'Florence-2', 'GPT-4o-mini', 'Ollama', 'normal','Gemini-1.5-Pro']
     # 'hand' = Google Vision API handwritten optimized 
     # 'normal' = Default Google Vision API
@@ -89,7 +89,7 @@ leafmachine:
 
     tool_GEO: false
     tool_WFO: true
-    tool_wikipedia: false
+    tool_wikipedia: true
     
     # For the LM2 label collages. Should not be a problem for most use cases
     batch_size: 100
