@@ -1824,8 +1824,6 @@ class VoucherVision():
             json_report.set_text(text_main=f'Loading {MODEL_NAME_FORMATTED}')
             json_report.set_JSON({}, {}, {})
 
-        # --- NO LONGER INITIALIZE LLM MODEL HERE ---
-
         # Filter out specimens that should be skipped
         valid_img_paths = []
         for i, path_to_crop in enumerate(self.img_paths):
@@ -1834,23 +1832,24 @@ class VoucherVision():
             else:
                 self.log_skipping_specimen(path_to_crop)
 
+        # --- Initialize OCR and LLM models ONCE (they are thread-safe) ---
+        # Create a single OCR engine instance shared across all threads
+        # Ollama OCR uses class-level semaphores to limit concurrent requests
+        shared_ocr_engine = OCREngine(self.logger, None, self.dir_home, self.is_hf,
+                                      self.cfg, self.trOCR_model_version, self.trOCR_model,
+                                      self.trOCR_processor, self.device)
+        
+        # Create a single LLM model instance shared across all threads
+        shared_llm_model = self.initialize_llm_model(self.cfg, self.logger, MODEL_NAME_FORMATTED,
+                                                      self.JSON_dict_structure, name_parts, is_azure,
+                                                      self.llm, self.config_vals_for_permutation)
+
         # --- Prepare Jobs for Parallel Processing ---
         jobs = []
         total_images = len(valid_img_paths)
-        for i, path_to_crop in valid_img_paths:
-            # Each thread gets its own fresh OCR Engine instance to prevent state conflicts
-            ocr_engine_for_thread = OCREngine(self.logger, None, self.dir_home, self.is_hf,
-                                            self.cfg, self.trOCR_model_version, self.trOCR_model,
-                                            self.trOCR_processor, self.device)
-            
-            # CORRECTED: Each thread also gets its own fresh LLM model instance.
-            # This is the critical fix to prevent the race condition.
-            llm_model_for_thread = self.initialize_llm_model(self.cfg, self.logger, MODEL_NAME_FORMATTED,
-                                                            self.JSON_dict_structure, name_parts, is_azure,
-                                                            self.llm, self.config_vals_for_permutation)
-            
+        for i, path_to_crop in valid_img_paths:            
             job_args = (
-                i, path_to_crop, total_images, llm_model_for_thread, ocr_engine_for_thread,
+                i, path_to_crop, total_images, shared_llm_model, shared_ocr_engine,
                 self, MODEL_NAME_FORMATTED, name_parts # 'self' is passed for access to stateless helpers
             )
             jobs.append(job_args)

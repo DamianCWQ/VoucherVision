@@ -35,7 +35,7 @@ leafmachine:
 
 
 
-    double_OCR: false
+    double_OCR: true
     # ['hand', 'Qwen-2-VL', 'Florence-2', 'GPT-4o-mini', 'Ollama', 'normal','Gemini-1.5-Pro']
     # 'hand' = Google Vision API handwritten optimized 
     # 'normal' = Default Google Vision API
@@ -45,9 +45,9 @@ leafmachine:
     # 'Ollama' = Ollama vision model for OCR (requires OLLAMA_OCR_MODEL env var)
     OCR_option:
     # - Florence-2
+    # - Qwen-2-VL
     # - Gemini-1.5-Pro
     # - GPT-4o-mini
-    # - Qwen-2-VL
     - Ollama
 
 
@@ -61,18 +61,24 @@ leafmachine:
     #         Qwen/Qwen2-VL-7B-Instruct
     qwen_model_path: Qwen/Qwen2-VL-7B-Instruct-AWQ
 
-    # If Qwen-2-VL is in OCR_option, then choose from:
+    # If Florence-2 is in OCR_option, then choose from:
     # do_use_florence: false
     #         microsoft/Florence-2-large   
     #         microsoft/Florence-2-base
     florence_model_path: microsoft/Florence-2-base
 
     # If Ollama is in OCR_option, specify the vision model:
-    #         qwen2-vl:4b
-    #         llama3.2-vision
-    #         bakllava
+    #         qwen3-vl:4b
+    #         glm-ocr:latest
     #         or any other Ollama vision model
-    ollama_ocr_model: qwen3-vl:4b
+    ollama_ocr_model: glm-ocr:latest
+
+    # If using "Ollama Custom" for LLM_version, specify the LLM model:
+    #         llama3.1:8b-instruct-q4_K_S
+    #         qwen2.5:3b
+    #         qwen2.5:7b
+    #         or any other Ollama text model
+    ollama_llm_model: qwen2.5:7b
 
     # Technically supported, but the installation instructions will not include all required packages for CRAFT, please contact us if you need to use this
     do_use_trOCR: false
@@ -81,7 +87,7 @@ leafmachine:
     OCR_option_llava_bit: full
 
     tool_GEO: false
-    tool_WFO: false
+    tool_WFO: true
     tool_wikipedia: false
     
     # For the LM2 label collages. Should not be a problem for most use cases
@@ -92,12 +98,12 @@ leafmachine:
     delete_all_temps: false
     delete_temps_keep_VVE: false
     image_location: local
-    num_workers: 1
+    num_workers: 2
     pdf_conversion_dpi: 100
     prefix_removal: ''
     suffix_removal: ''
     specimen_rotate: false
-    use_domain_knowledge: false
+    use_domain_knowledge: true
 
   archival_component_detector:
     detector_iteration: PREP_final

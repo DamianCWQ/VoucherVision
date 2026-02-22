@@ -36,8 +36,11 @@ class OllamaHandler:
         # Ollama connection settings
         self.base_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
         
-        # Get custom model name if using Ollama Custom
-        self.custom_model_name = os.getenv('OLLAMA_CUSTOM_MODEL_NAME', None)
+        # Get custom model name - priority: config file > env var
+        # Check config first, then fall back to environment variable
+        config_model = self.cfg['leafmachine']['project'].get('ollama_llm_model', None)
+        env_model = os.getenv('OLLAMA_CUSTOM_MODEL_NAME', None)
+        self.custom_model_name = config_model if config_model else env_model
         
         ### Config
         self.config_vals_for_permutation = config_vals_for_permutation
