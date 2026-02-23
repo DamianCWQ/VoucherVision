@@ -97,6 +97,7 @@ class OCREngine:
         self.init_hyperbolic()
         self.init_Qwen2VL()
         self.init_ollama()
+        self.init_donut()
         self.init_craft()
 
         self.multimodal_prompt = """I need you to transcribe all of the text in this image. 
@@ -211,6 +212,16 @@ class OCREngine:
             
             self.logger.info(f"Initializing Ollama OCR with model: {ollama_model}")
             self.OllamaOCR = OllamaVisionOCR(logger=self.logger, model_name=ollama_model, base_url=ollama_base_url)
+    
+    def init_donut(self):
+        if 'Donut' in self.OCR_option:
+            from vouchervision.OCR_Donut import DonutOCR
+            
+            # Get Donut model path from config or use default
+            donut_model = self.cfg['leafmachine']['project'].get('donut_model_path', 'naver-clova-ix/donut-base')
+            
+            self.logger.info(f"Initializing Donut OCR with model: {donut_model}")
+            self.DonutOCR = DonutOCR(logger=self.logger, model_id=donut_model, device=self.device)
             
 
     def init_llava(self):
@@ -945,6 +956,22 @@ class OCREngine:
                 self.OCR = self.OCR + f"\nOllama OCR:\n{results_text}" + f"\nOllama OCR:\n{results_text}"
             else:
                 self.OCR = self.OCR + f"\nOllama OCR:\n{results_text}"
+        
+        if 'Donut' in self.OCR_option: # This option does not produce an OCR helper image
+            self.ocr_method.add("Donut")
+            if self.json_report:
+                self.json_report.set_text(text_main=f'Working on Donut [{self.DonutOCR.model_id}] OCR :construction:')
+
+            self.logger.info(f"Donut OCR Usage Report for Model [{self.DonutOCR.model_id}]")
+            results_text, raw_json, usage_report = self.DonutOCR.ocr_donut(self.path)
+            results_text_sanitized = sanitize_for_storage(results_text)
+
+            self.OCR_JSON_to_file['OCR_Donut'] = results_text_sanitized
+
+            if self.double_OCR:
+                self.OCR = self.OCR + f"\nDonut OCR:\n{results_text}" + f"\nDonut OCR:\n{results_text}"
+            else:
+                self.OCR = self.OCR + f"\nDonut OCR:\n{results_text}"
         
         if 'GPT-4o' in self.OCR_option: # This option does not produce an OCR helper image
             self.ocr_method.add("GPT-4o")

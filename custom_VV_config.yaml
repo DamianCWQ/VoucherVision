@@ -36,19 +36,21 @@ leafmachine:
 
 
     double_OCR: false
-    # ['hand', 'Qwen-2-VL', 'Florence-2', 'GPT-4o-mini', 'Ollama', 'normal','Gemini-1.5-Pro']
+    # ['hand', 'Qwen-2-VL', 'Florence-2', 'GPT-4o-mini', 'Ollama', 'Donut', 'normal','Gemini-1.5-Pro']
     # 'hand' = Google Vision API handwritten optimized 
     # 'normal' = Default Google Vision API
     # 'Qwen-2-VL' = Qwen-2-VL model for OCR
     # 'Florence-2' = Florence-2 model for OCR
     # 'GPT-4o-mini' = GPT-4o-mini model for OCR
     # 'Ollama' = Ollama vision model for OCR (requires OLLAMA_OCR_MODEL env var)
+    # 'Donut' = Donut VDU model for OCR and document understanding
     OCR_option:
     # - Florence-2
     # - Qwen-2-VL
     # - Gemini-1.5-Pro
     # - GPT-4o-mini
-    - Ollama
+    - Donut
+    # - Ollama
 
 
     # If GPT-4o-mini is in OCR_option, then choose from:
@@ -66,6 +68,13 @@ leafmachine:
     #         microsoft/Florence-2-large   
     #         microsoft/Florence-2-base
     florence_model_path: microsoft/Florence-2-base
+
+    # If Donut is in OCR_option, then choose from:
+    #         elderprince/HeR-T (RECOMMENDED - fine-tuned for herbarium specimens!)
+    #         naver-clova-ix/donut-base-finetuned-cord-v2 (for receipts/invoices)
+    #         naver-clova-ix/donut-base-finetuned-docvqa (for document Q&A)
+    #         or other custom fine-tuned models from Hugging Face
+    donut_model_path: elderprince/HeR-T
 
     # If Ollama is in OCR_option, specify the vision model:
     #         qwen3-vl:4b
